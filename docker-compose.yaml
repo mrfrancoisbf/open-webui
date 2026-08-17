@@ -2,12 +2,12 @@ version: '3.8'
 
 services:
   db:
-    image: 'postgres:15'
+    image: 'postgres:15-alpine'
     container_name: lielo-postgres
     restart: always
     environment:
       POSTGRES_USER: lielo_admin
-      POSTGRES_PASSWORD: 'LieloDatabasePassword226!'
+      POSTGRES_PASSWORD: 'LieloDatabasePassword226'
       POSTGRES_DB: lielo_db
     volumes:
       - 'lielo-db-data:/var/lib/postgresql/data'
@@ -20,9 +20,7 @@ services:
       retries: 5
 
   open-webui:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: 'ghcr.io/open-webui/open-webui:main'
     container_name: lielo-app
     restart: always
     ports:
@@ -31,8 +29,8 @@ services:
       - 'open-webui-data:/app/backend/data'
     environment:
       - 'WEBUI_NAME=Lielo'
-      - 'DATABASE_URL=postgresql://lielo_admin:LieloDatabasePassword226!@db:5432/lielo_db'
-      - 'WEBUI_SECRET_KEY=t7bR9wK2mXzP5vQuC8jN1eF4yA3sD6gH9_Lielo226_xZ7kM2pW5vQ9zX4r'
+      - 'DATABASE_URL=postgresql://lielo_admin:LieloDatabasePassword226@db:5432/lielo_db'
+      - 'WEBUI_SECRET_KEY=t7b_R9_wK2mXzP5vQuC8jN1eF4yA3sD6gH9_Lielo226_xZ7kM2pW5vQ9zX4r'
     depends_on:
       db:
         condition: service_healthy
