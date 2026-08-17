@@ -23,8 +23,8 @@ services:
     image: 'ghcr.io/open-webui/open-webui:main'
     container_name: lielo-app
     restart: always
-    ports:
-      - '8080:8085'
+    expose:
+      - '8080'
     volumes:
       - 'open-webui-data:/app/backend/data'
     environment:
@@ -39,7 +39,7 @@ services:
         - CMD
         - curl
         - '-f'
-        - 'http://127.0.0.1:8085'
+        - 'http://127.0.0.1:8080'
       interval: 10s
       timeout: 10s
       retries: 5
