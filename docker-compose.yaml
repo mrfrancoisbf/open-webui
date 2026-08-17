@@ -24,7 +24,7 @@ services:
     container_name: lielo-app
     restart: always
     ports:
-      - '8080:8080'
+      - '8080:8085'
     volumes:
       - 'open-webui-data:/app/backend/data'
     environment:
