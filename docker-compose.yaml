@@ -6,7 +6,6 @@ services:
     container_name: lielo-postgres
     restart: always
     environment:
-      # Utilisation de variables d'environnement avec tes valeurs par défaut
       POSTGRES_USER: ${POSTGRES_USER:-lielo_admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-LieloDatabasePassword226}
       POSTGRES_DB: ${POSTGRES_DB:-lielo_db}
@@ -30,7 +29,6 @@ services:
       - 'WEBUI_NAME=Lielo'
       - 'DATABASE_URL=postgresql://${POSTGRES_USER:-lielo_admin}:${POSTGRES_PASSWORD:-LieloDatabasePassword226}@db:5432/${POSTGRES_DB:-lielo_db}'
       - 'WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:-t7b_R9_wK2mXzP5vQuC8jN1eF4yA3sD6gH9_Lielo226_xZ7kM2pW5vQ9zX4r}'
-      # Ajout recommandé pour connecter ton instance Ollama locale ou distante
       - 'OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}'
     depends_on:
       db:
