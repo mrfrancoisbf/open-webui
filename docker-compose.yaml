@@ -1,48 +1,32 @@
-version: '3.8'
-
 services:
-  db:
-    image: 'postgres:15-alpine'
-    container_name: lielo-postgres
-    restart: always
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-lielo_admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-LieloDatabasePassword226}
-      POSTGRES_DB: ${POSTGRES_DB:-lielo_db}
+  ollama:
     volumes:
-      - 'lielo-db-data:/var/lib/postgresql/data'
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lielo_admin} -d ${POSTGRES_DB:-lielo_db}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - ollama:/root/.ollama
+    container_name: ollama
+    pull_policy: always
+    tty: true
+    restart: unless-stopped
+    image: ollama/ollama:${OLLAMA_DOCKER_TAG-latest}
 
   open-webui:
-    image: mediacodbf/lielo-ai:latest       # <-- C'EST ICI LA MODIFICATION IMPORTANTE !
-    container_name: lielo-app
-    restart: always
-    expose:
-      - '8080'
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/open-webui/open-webui:${WEBUI_DOCKER_TAG-main}
+    container_name: open-webui
     volumes:
-      - 'open-webui-data:/app/backend/data'
-    environment:
-      - WEBUI_NAME=Lielo
-      - 'DATABASE_URL=postgresql://${POSTGRES_USER:-lielo_admin}:${POSTGRES_PASSWORD:-LieloDatabasePassword226}@db:5432/${POSTGRES_DB:-lielo_db}'
-      - 'WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:-t7b_R9_wK2mXzP5vQuC8jN1eF4yA3sD6gH9_Lielo226_xZ7kM2pW5vQ9zX4r}'
-      - 'OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}'
+      - open-webui:/app/backend/data
     depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test:
-        - CMD
-        - curl
-        - '-f'
-        - 'http://127.0.0.1:8080/health'
-      interval: 15s
-      timeout: 10s
-      retries: 5
+      - ollama
+    ports:
+      - ${OPEN_WEBUI_PORT-3000}:8080
+    environment:
+      - 'OLLAMA_BASE_URL=http://ollama:11434'
+      - 'WEBUI_SECRET_KEY='
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: unless-stopped
 
 volumes:
-  open-webui-data:
-  lielo-db-data:
+  ollama: {}
+  open-webui: {}
