@@ -117,23 +117,9 @@ RUN chown -R $UID:$GID /app $HOME
 # ------------------------------------------------------------
 # SYSTEM DEPENDENCIES
 # ------------------------------------------------------------
-#
-# Conserved intentionally:
-# - build-essential / gcc / python3-dev:
-#   required because some Python packages may need native compilation.
-# - pandoc:
-#   used for document conversion.
-# - ffmpeg:
-#   used for audio/video processing and Whisper-related features.
-# - libmariadb-dev:
-#   kept for compatibility with OpenWebUI's supported DB stack.
-# - libsm6/libxext6:
-#   kept for image/vision-related Python dependencies.
-# - git/curl/jq/ca-certificates/netcat/zstd:
-#   used by the application/build/runtime tooling.
-#
-# The safest optimization here is therefore not to remove these
-# dependencies blindly.
+# Keep these dependencies conservatively to preserve Open WebUI
+# document, audio/video, image, database-client, and native-build
+# functionality.
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -161,17 +147,17 @@ RUN apt-get update && \
 
 COPY --chown=$UID:$GID ./backend/requirements.txt ./requirements.txt
 
-ENV UV_LINK_MODE=copy
+ENV UV_LINK_MODE=copy \
+    UV_HTTP_TIMEOUT=1200 \
+    UV_HTTP_RETRIES=10
 
 
 # ------------------------------------------------------------
 # PYTORCH + PYTHON PACKAGES
 # ------------------------------------------------------------
-#
-# Your previous failure was a ReadTimeout while downloading
-# torch-2.9.1+cpu from download-r2.pytorch.org.
-#
-# Keep the extended timeout/retry values.
+# PyTorch previously hit a network ReadTimeout on this server.
+# pip gets the extended timeout/retry settings.
+# Do NOT pass pip-only retry flags to uv pip install.
 
 RUN set -e; \
     pip3 install \
@@ -181,7 +167,6 @@ RUN set -e; \
         uv; \
     \
     if [ "$USE_CUDA" = "true" ]; then \
-        \
         pip3 install \
             --default-timeout=1200 \
             --retries=10 \
@@ -193,9 +178,7 @@ RUN set -e; \
         \
         uv pip install \
             --system \
-            --retries 10 \
-            --timeout 1200 \
-            --no-cache-dir \
+            --no-cache \
             -r requirements.txt; \
         \
         python -c "import os; from sentence_transformers import SentenceTransformer; SentenceTransformer(os.environ['RAG_EMBEDDING_MODEL'], device='cpu')"; \
@@ -203,9 +186,7 @@ RUN set -e; \
         python -c "import os; from faster_whisper import WhisperModel; WhisperModel(os.environ['WHISPER_MODEL'], device='cpu', compute_type='int8', download_root=os.environ['WHISPER_MODEL_DIR'])"; \
         python -c "import os; import tiktoken; tiktoken.get_encoding(os.environ['TIKTOKEN_ENCODING_NAME'])"; \
         python -c "import nltk; nltk.download('punkt_tab')"; \
-    \
     else \
-        \
         pip3 install \
             --default-timeout=1200 \
             --retries=10 \
@@ -217,13 +198,10 @@ RUN set -e; \
         \
         uv pip install \
             --system \
-            --retries 10 \
-            --timeout 1200 \
-            --no-cache-dir \
+            --no-cache \
             -r requirements.txt; \
         \
         if [ "$USE_SLIM" != "true" ]; then \
-            \
             python -c "import os; from sentence_transformers import SentenceTransformer; SentenceTransformer(os.environ['RAG_EMBEDDING_MODEL'], device='cpu')"; \
             python -c "import os; from sentence_transformers import SentenceTransformer; SentenceTransformer(os.environ.get('AUXILIARY_EMBEDDING_MODEL', 'TaylorAI/bge-micro-v2'), device='cpu')"; \
             python -c "import os; from faster_whisper import WhisperModel; WhisperModel(os.environ['WHISPER_MODEL'], device='cpu', compute_type='int8', download_root=os.environ['WHISPER_MODEL_DIR'])"; \
@@ -240,13 +218,8 @@ RUN set -e; \
 # ------------------------------------------------------------
 # OLLAMA
 # ------------------------------------------------------------
-#
-# IMPORTANT:
 # Ollama is already running as a separate Coolify resource.
-# We deliberately DO NOT install Ollama inside this image.
-#
-# USE_OLLAMA remains available for compatibility with your fork,
-# but the default is false.
+# It is deliberately NOT installed inside this image.
 
 
 # ------------------------------------------------------------
@@ -263,7 +236,6 @@ COPY --chown=$UID:$GID --from=build /app/package.json /app/package.json
 # ------------------------------------------------------------
 
 COPY --chown=$UID:$GID ./backend .
-
 
 # Runtime-generated static assets need write permissions.
 RUN chgrp -R 0 /app/backend/open_webui/static && \
